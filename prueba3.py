@@ -6,7 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-#Prueba cogiendo las lineas mas largas
+#Clustering cogiendo la media de las lineas de la izda y dcha
 
 def mostrar(img):
     cv2.imshow("Detección de líneas (CPU)", img)
@@ -42,6 +42,8 @@ def region_interes2(img, margen_horizontal=0.05, margen_inferior=0.05):
     mask = np.zeros_like(img)
     mask[y_min:y_max, x_min:x_max] = 255
 
+
+
     # Aplicar máscara
     masked = cv2.bitwise_and(img, mask)
     return masked
@@ -66,38 +68,70 @@ def filtrar_lineas(lines):
 # -------------------------------
 
 def procesado_cpu(frame):
-    """Procesamiento en CPU: detección de líneas por Hough transform."""
+    """Procesamiento en CPU: detección de líneas agrupadas (clustering por pendiente)."""
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(blur, 50, 150)
 
     # Aplicar la región de interés
     roi = region_interes2(edges)
-    #mostrar(roi)
 
-    # Detectar líneas en la ROI
-    lines = cv2.HoughLinesP(roi, 1, np.pi / 180, 50, minLineLength=50, maxLineGap=150)
-
-    # Filtrar líneas por orientación
-    filtradas = filtrar_lineas(lines)
-
-    lines_sorted = sorted(
-        filtradas,
-        key=lambda x: math.dist((x[0], x[1]), (x[2], x[3])),
-        reverse=True
+    # Detectar líneas con Hough
+    lines = cv2.HoughLinesP(
+        roi, 1, np.pi / 180, 50,
+        minLineLength=50, maxLineGap=150
     )
 
-    filtradas_max = lines_sorted[:10]
+    # Si no hay líneas, devolver el frame sin cambios
+    if lines is None:
+        return frame
+
+    # Filtrar líneas con orientación razonable
+    filtradas = filtrar_lineas(lines)
+
+    #mostrar(roi)
+
+    # Separar líneas por pendiente
+    left_lines = []
+    right_lines = []
+
+    for x1, y1, x2, y2 in filtradas:
+        if x2 == x1:
+            continue
+        m = (y2 - y1) / (x2 - x1)
+        b = y1 - m * x1
+        # Considerar pendiente negativa como línea izquierda
+        if m < 0:
+            left_lines.append((m, b))
+        else:
+            right_lines.append((m, b))
 
     output = frame.copy()
-    for (x1, y1, x2, y2) in filtradas_max:
-        cv2.line(output, (x1, y1), (x2, y2), (0, 255, 0), 3)
+    alto, ancho = frame.shape[:2]
 
-    show = False
-    if show:
-        mostrar(output)
+    # Función auxiliar para promediar líneas y dibujar una sola
+    def draw_lane_line(lines, color):
+        if len(lines) == 0:
+            return
+        m_avg = np.mean([l[0] for l in lines])
+        b_avg = np.mean([l[1] for l in lines])
+
+        # Elegir rango vertical (parte inferior a mitad de imagen)
+        y1 = alto
+        y2 = int(alto * 0.6)
+
+        # Calcular puntos extremos de la línea
+        x1 = int((y1 - b_avg) / m_avg)
+        x2 = int((y2 - b_avg) / m_avg)
+
+        cv2.line(output, (x1, y1), (x2, y2), color, 8)
+
+    # Dibujar líneas promediadas
+    draw_lane_line(left_lines, (0, 255, 0))   # Verde izquierda
+    draw_lane_line(right_lines, (0, 0, 255))  # Roja derecha
 
     return output
+
 
 # -------------------------------
 # MEDICIÓN DE RENDIMIENTO

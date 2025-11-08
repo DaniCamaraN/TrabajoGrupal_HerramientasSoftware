@@ -6,7 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-#Prueba cogiendo las lineas mas largas
+#Combinación líneas largas con lineas de color blancas y amarillas
 
 def mostrar(img):
     cv2.imshow("Detección de líneas (CPU)", img)
@@ -66,38 +66,58 @@ def filtrar_lineas(lines):
 # -------------------------------
 
 def procesado_cpu(frame):
-    """Procesamiento en CPU: detección de líneas por Hough transform."""
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    edges = cv2.Canny(blur, 50, 150)
+    """Procesamiento en CPU: detección de líneas de carril usando segmentación por color + Canny + Hough."""
 
-    # Aplicar la región de interés
+    # Convertir a HSV (más robusto a la iluminación)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # Máscara para líneas blancas
+    lower_white = np.array([0, 0, 200])
+    upper_white = np.array([180, 30, 255])
+    mask_white = cv2.inRange(hsv, lower_white, upper_white)
+
+    # Máscara para líneas amarillas (varía según iluminación)
+    lower_yellow = np.array([15, 80, 80])
+    upper_yellow = np.array([35, 255, 255])
+    mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
+
+    # Combinar ambas máscaras
+    mask = cv2.bitwise_or(mask_white, mask_yellow)
+
+    # Aplicar Canny sobre la máscara (no sobre toda la imagen)
+    edges = cv2.Canny(mask, 50, 150)
+
+    # Aplicar región de interés (ROI)
     roi = region_interes2(edges)
-    #mostrar(roi)
 
-    # Detectar líneas en la ROI
-    lines = cv2.HoughLinesP(roi, 1, np.pi / 180, 50, minLineLength=50, maxLineGap=150)
+    # Detectar líneas por transformada de Hough
+    lines = cv2.HoughLinesP(
+        roi,
+        rho=1,
+        theta=np.pi / 180,
+        threshold=50,
+        minLineLength=50,
+        maxLineGap=150
+    )
 
-    # Filtrar líneas por orientación
+    # Filtrar líneas por orientación (diagonales)
     filtradas = filtrar_lineas(lines)
 
+    # Ordenar por longitud y quedarte con las más largas
     lines_sorted = sorted(
         filtradas,
         key=lambda x: math.dist((x[0], x[1]), (x[2], x[3])),
         reverse=True
     )
+    filtradas_max = lines_sorted[:4]
 
-    filtradas_max = lines_sorted[:10]
-
+    # Dibujar las líneas sobre el frame original
     output = frame.copy()
     for (x1, y1, x2, y2) in filtradas_max:
         cv2.line(output, (x1, y1), (x2, y2), (0, 255, 0), 3)
 
-    show = False
-    if show:
-        mostrar(output)
-
     return output
+
 
 # -------------------------------
 # MEDICIÓN DE RENDIMIENTO

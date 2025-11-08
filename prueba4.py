@@ -6,8 +6,6 @@ import time
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-#Prueba cogiendo las lineas mas largas
-
 def mostrar(img):
     cv2.imshow("Detección de líneas (CPU)", img)
     cv2.waitKey(0)
@@ -65,39 +63,99 @@ def filtrar_lineas(lines):
 # FUNCIONES DE PROCESAMIENTO
 # -------------------------------
 
+# Variables globales para guardar líneas previas
+prev_left = None
+prev_right = None
+alpha = 0.1  # factor de suavizado temporal
+
 def procesado_cpu(frame):
-    """Procesamiento en CPU: detección de líneas por Hough transform."""
+    """Detección de líneas con suavizado temporal (tracking)."""
+    global prev_left, prev_right
+
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(blur, 50, 150)
 
-    # Aplicar la región de interés
     roi = region_interes2(edges)
-    #mostrar(roi)
-
-    # Detectar líneas en la ROI
-    lines = cv2.HoughLinesP(roi, 1, np.pi / 180, 50, minLineLength=50, maxLineGap=150)
-
-    # Filtrar líneas por orientación
-    filtradas = filtrar_lineas(lines)
-
-    lines_sorted = sorted(
-        filtradas,
-        key=lambda x: math.dist((x[0], x[1]), (x[2], x[3])),
-        reverse=True
+    lines = cv2.HoughLinesP(
+        roi, 1, np.pi / 180, 50,
+        minLineLength=50, maxLineGap=150
     )
 
-    filtradas_max = lines_sorted[:10]
+    if lines is None:
+        # Si no detecta líneas nuevas, usar las anteriores
+        output = frame.copy()
+        if prev_left is not None:
+            draw_lane_line(output, prev_left, (0, 255, 0))
+        if prev_right is not None:
+            draw_lane_line(output, prev_right, (0, 0, 255))
+        return output
+
+    filtradas = filtrar_lineas(lines)
+    left_lines = []
+    right_lines = []
+
+    for x1, y1, x2, y2 in filtradas:
+        if x2 == x1:
+            continue
+        m = (y2 - y1) / (x2 - x1)
+        b = y1 - m * x1
+        if m < 0:
+            left_lines.append((m, b))
+        else:
+            right_lines.append((m, b))
 
     output = frame.copy()
-    for (x1, y1, x2, y2) in filtradas_max:
-        cv2.line(output, (x1, y1), (x2, y2), (0, 255, 0), 3)
+    alto, ancho = frame.shape[:2]
 
-    show = False
-    if show:
-        mostrar(output)
+    def promedio_lineas(lines):
+        if len(lines) == 0:
+            return None
+        m_avg = np.mean([l[0] for l in lines])
+        b_avg = np.mean([l[1] for l in lines])
+        return (m_avg, b_avg)
+
+    left_avg = promedio_lineas(left_lines)
+    right_avg = promedio_lineas(right_lines)
+
+    # Mezclar con líneas anteriores (suavizado temporal)
+    if left_avg is not None:
+        if prev_left is not None:
+            m = alpha * left_avg[0] + (1 - alpha) * prev_left[0]
+            b = alpha * left_avg[1] + (1 - alpha) * prev_left[1]
+            prev_left = (m, b)
+        else:
+            prev_left = left_avg
+
+    if right_avg is not None:
+        if prev_right is not None:
+            m = alpha * right_avg[0] + (1 - alpha) * prev_right[0]
+            b = alpha * right_avg[1] + (1 - alpha) * prev_right[1]
+            prev_right = (m, b)
+        else:
+            prev_right = right_avg
+
+    # Dibujar líneas suavizadas
+    if prev_left is not None:
+        draw_lane_line(output, prev_left, (0, 255, 0))
+    if prev_right is not None:
+        draw_lane_line(output, prev_right, (0, 0, 255))
 
     return output
+
+
+def draw_lane_line(img, line, color):
+    """Dibuja una línea (m, b) extendida desde el fondo hasta la mitad."""
+    if line is None:
+        return
+    m, b = line
+    alto, ancho = img.shape[:2]
+    y1 = alto
+    y2 = int(alto * 0.6)
+    x1 = int((y1 - b) / m)
+    x2 = int((y2 - b) / m)
+    cv2.line(img, (x1, y1), (x2, y2), color, 8)
+
 
 # -------------------------------
 # MEDICIÓN DE RENDIMIENTO
