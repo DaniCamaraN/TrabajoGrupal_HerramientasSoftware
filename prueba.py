@@ -6,7 +6,14 @@ import time
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+#DataSet:  https://www.kaggle.com/datasets/sergiolvarezsilva/lane-detection-dataset-morelos-sergio
+
 #Prueba cogiendo las lineas mas largas
+
+def resize(img):
+    img_redimensionada = cv2.resize(img, (1024, 600), interpolation=cv2.INTER_AREA)
+
+    return img_redimensionada
 
 def mostrar(img):
     cv2.imshow("Detección de líneas (CPU)", img)
@@ -108,6 +115,7 @@ def medir_tiempo(video_path, funcion, n_frames=60):
     tiempos = []
     for _ in range(n_frames):
         ret, frame = cap.read()
+        frame = resize(frame)
         if not ret:
             break
         inicio = time.time()
@@ -123,12 +131,17 @@ def medir_tiempo(video_path, funcion, n_frames=60):
 
 def mostrar_video_detectado(video_path, funcion):
     cap = cv2.VideoCapture(video_path)
+    ret0, frame0 = cap.read()
+    alto, ancho = frame0.shape[:2]
+    print(alto,ancho)
     if not cap.isOpened():
         print("Error al abrir el video.")
         return
 
     while cap.isOpened():
         ret, frame = cap.read()
+        frame = resize(frame)
+
         if not ret:
             break
 
