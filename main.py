@@ -11,6 +11,8 @@ import metodo3
 import metodo4
 import metodo5
 
+#DataSet:  https://www.kaggle.com/datasets/sergiolvarezsilva/lane-detection-dataset-morelos-sergio
+
 # Métodos CPU y GPU en paralelo
 METODOS = {
     "lineas_largas": (metodo1.procesado_cpu, metodo1.procesado_gpu),
@@ -94,7 +96,7 @@ def procesamiento_complejo(video_path, func_cpu, func_gpu, metodo):
     plt.show()
 
     # -----------------------------
-    # 5️⃣ Heatmap FPS por método y modo
+    # 5️⃣ Heatmap FPS por metodo y modo
     # -----------------------------
     fps_matrix = []
     for f_cpu, f_gpu in METODOS.values():
@@ -108,7 +110,7 @@ def procesamiento_complejo(video_path, func_cpu, func_gpu, metodo):
 
 
 def main():
-    video_path = "./video_1.mp4"
+    video_path = "./video_3.mp4"
 
     print("Métodos disponibles:")
     for k in METODOS:
@@ -123,8 +125,8 @@ def main():
 
     print("\nMidiendo rendimiento...")
 
-    #procesamiento_simple(video_path, func_cpu, func_gpu, metodo)
-    procesamiento_complejo(video_path, func_cpu, func_gpu, metodo)
+    procesamiento_simple(video_path, func_cpu, func_gpu, metodo)
+    #procesamiento_complejo(video_path, func_cpu, func_gpu, metodo)
 
     print("\nReproduciendo video CPU/GPU...")
     mostrar_video_detectado_doble(video_path, func_cpu, func_gpu)
