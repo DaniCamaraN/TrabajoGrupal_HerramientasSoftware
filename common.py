@@ -79,8 +79,6 @@ def mostrar_video_detectado(video_path, funcion):
 def mostrar_video_detectado_doble(video_path, func_cpu, func_gpu):
     cap = cv2.VideoCapture(video_path)
 
-    modo = "CPU"   # CPU inicial
-
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -88,24 +86,25 @@ def mostrar_video_detectado_doble(video_path, func_cpu, func_gpu):
 
         frame = resize(frame)
 
-        # Alternancia en tiempo real
-        if modo == "CPU":
-            out = func_cpu(frame)
-        else:
-            out = func_gpu(frame)
+        # Procesar ambos frames
+        out_cpu = func_cpu(frame)
+        out_gpu = func_gpu(frame)
 
-        cv2.putText(out, f"MODO: {modo}", (20, 40),
+        # Añadir texto identificativo
+        cv2.putText(out_cpu, "CPU", (20, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+        cv2.putText(out_gpu, "GPU", (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
-        cv2.imshow("Detección (CPU/GPU)", out)
+        # Concatenar horizontalmente
+        combined = np.hstack((out_cpu, out_gpu))
 
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('c'):
-            modo = "CPU"
-        elif key == ord('g'):
-            modo = "GPU"
-        elif key == ord('q'):
+        cv2.imshow("Detección CPU vs GPU", combined)
+
+        # Esperar 1ms y salir si se presiona 'q'
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     cap.release()
     cv2.destroyAllWindows()
+

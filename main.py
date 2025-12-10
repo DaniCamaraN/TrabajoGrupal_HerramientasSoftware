@@ -59,8 +59,7 @@ def main():
     plt.ylabel("FPS")
     plt.show()
 
-    print("\nReproduciendo video con selector CPU/GPU...")
-    print("Pulsa 'c' para CPU, 'g' para GPU, 'q' para salir")
+    print("\nReproduciendo video CPU/GPU...")
     mostrar_video_detectado_doble(video_path, func_cpu, func_gpu)
 
 if __name__ == "__main__":
