@@ -1,45 +1,73 @@
+import time
 import numpy as np
 import cv2
-import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sn
+import seaborn as sns
 
-def procesado(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    # Aplicar umbral para obtener imagen binaria
-    _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    img_contours = gray.copy()
-    return img_contours, contours
+# ===============================
+# IMPORTAR FUNCIONES COMUNES
+# ===============================
 
-def mostrar(img, contours):
-    # Dibuja los contornos encontrados en la imagen
-    img_color = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)  # para dibujar en color
-    cv2.drawContours(img_color, contours, -1, (0, 255, 0), 3)
-    cv2.imshow("Video", img_color)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+from common import resize, medir_tiempo, mostrar_video_detectado
+
+# ===============================
+# IMPORTAR MÉTODOS ESPECÍFICOS
+# ===============================
+
+import metodo1     # líneas largas
+import metodo2     # color
+import metodo3     # clustering
+import metodo4     # suavizado temporal
+import metodo5     # lo que tengas en el script5
+
+
+# ===============================
+# SELECCIÓN DEL MÉTODO
+# ===============================
+
+METODOS = {
+    "lineas_largas": metodo1.procesado_cpu,
+    "color": metodo2.procesado_cpu,
+    "clustering": metodo3.procesado_cpu,
+    "suavizado": metodo4.procesado_cpu,
+    "mixto": metodo5.procesado_cpu
+}
+
+# ===============================
+# MAIN
+# ===============================
+
+def main():
+    video_path = "./video_0.mp4"
+
+    print("Métodos disponibles:")
+    for k in METODOS:
+        print(f" - {k}")
+
+    metodo = input("\nElige método: ").strip()
+    if metodo not in METODOS:
+        print("Método no válido")
+        return
+
+    funcion = METODOS[metodo]
+
+    print("\nMidiendo rendimiento...")
+    t_cpu = medir_tiempo(video_path, funcion)
+    fps_cpu = 1 / t_cpu
+    print(f"CPU: {t_cpu:.4f}s por frame (~{fps_cpu:.1f} FPS)")
+
+    # Gráfico de resultados
+    data = {"Modo": ["CPU"], "FPS": [fps_cpu]}
+    sns.barplot(data=data, x="Modo", y="FPS", hue="Modo",
+                palette="viridis", legend=False)
+    plt.title(f"Rendimiento método '{metodo}'")
+    plt.ylabel("FPS")
+    plt.show()
+
+    # Mostrar video procesado
+    print("\nReproduciendo video con líneas detectadas...")
+    mostrar_video_detectado(video_path, funcion)
+
 
 if __name__ == "__main__":
-    video = cv2.VideoCapture('./video_0.mp4')
-    print("Video cargado")
-
-    ret, frame = video.read()
-    if not ret:
-        print("Error al leer el video.")
-        video.release()
-        exit()
-
-    # Filtrado gaussiano
-    blurred = cv2.GaussianBlur(frame, (5, 5), 0)
-
-    # Procesado de imágenes
-    img_contours, contours = procesado(frame)
-    img_contours2, contours2 = procesado(blurred)
-
-    # Mostrar resultados
-    print("Mostrando contornos...")
-    mostrar(img_contours, contours)
-    mostrar(img_contours2, contours2)
-
-    video.release()
+    main()
