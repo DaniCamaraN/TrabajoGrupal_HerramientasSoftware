@@ -4,38 +4,22 @@ import cv2
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# ===============================
-# IMPORTAR FUNCIONES COMUNES
-# ===============================
+from common import resize, medir_tiempo, mostrar_video_detectado_doble
 
-from common import resize, medir_tiempo, mostrar_video_detectado
+import metodo1
+import metodo2
+import metodo3
+import metodo4
+import metodo5
 
-# ===============================
-# IMPORTAR MÉTODOS ESPECÍFICOS
-# ===============================
-
-import metodo1     # líneas largas
-import metodo2     # color
-import metodo3     # clustering
-import metodo4     # suavizado temporal
-import metodo5     # lo que tengas en el script5
-
-
-# ===============================
-# SELECCIÓN DEL MÉTODO
-# ===============================
-
+# Métodos CPU y GPU en paralelo
 METODOS = {
-    "lineas_largas": metodo1.procesado_cpu,
-    "color": metodo2.procesado_cpu,
-    "clustering": metodo3.procesado_cpu,
-    "suavizado": metodo4.procesado_cpu,
-    "mixto": metodo5.procesado_cpu
+    "lineas_largas": (metodo1.procesado_cpu, metodo1.procesado_gpu),
+    "color":         (metodo2.procesado_cpu, metodo2.procesado_gpu),
+    "clustering":    (metodo3.procesado_cpu, metodo3.procesado_gpu),
+    "suavizado":     (metodo4.procesado_cpu, metodo4.procesado_gpu),
+    "mixto":         (metodo5.procesado_cpu, metodo5.procesado_gpu),
 }
-
-# ===============================
-# MAIN
-# ===============================
 
 def main():
     video_path = "./video_0.mp4"
@@ -49,25 +33,35 @@ def main():
         print("Método no válido")
         return
 
-    funcion = METODOS[metodo]
+    func_cpu, func_gpu = METODOS[metodo]
 
     print("\nMidiendo rendimiento...")
-    t_cpu = medir_tiempo(video_path, funcion)
+
+    # CPU
+    t_cpu = medir_tiempo(video_path, func_cpu)
     fps_cpu = 1 / t_cpu
     print(f"CPU: {t_cpu:.4f}s por frame (~{fps_cpu:.1f} FPS)")
 
-    # Gráfico de resultados
-    data = {"Modo": ["CPU"], "FPS": [fps_cpu]}
+    # GPU
+    t_gpu = medir_tiempo(video_path, func_gpu)
+    fps_gpu = 1 / t_gpu
+    print(f"GPU: {t_gpu:.4f}s por frame (~{fps_gpu:.1f} FPS)")
+
+    # === Gráfico FPS CPU vs GPU ===
+    data = {
+        "Modo": ["CPU", "GPU"],
+        "FPS": [fps_cpu, fps_gpu]
+    }
+
     sns.barplot(data=data, x="Modo", y="FPS", hue="Modo",
                 palette="viridis", legend=False)
     plt.title(f"Rendimiento método '{metodo}'")
     plt.ylabel("FPS")
     plt.show()
 
-    # Mostrar video procesado
-    print("\nReproduciendo video con líneas detectadas...")
-    mostrar_video_detectado(video_path, funcion)
-
+    print("\nReproduciendo video con selector CPU/GPU...")
+    print("Pulsa 'c' para CPU, 'g' para GPU, 'q' para salir")
+    mostrar_video_detectado_doble(video_path, func_cpu, func_gpu)
 
 if __name__ == "__main__":
     main()
