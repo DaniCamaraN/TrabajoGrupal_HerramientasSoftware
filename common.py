@@ -45,7 +45,7 @@ def filtrar_lineas(lines):
             filtradas.append([x1,y1,x2,y2])
     return filtradas
 
-def medir_tiempo(video_path, funcion, n_frames=60):
+def medir_tiempo(video_path, funcion, n_frames=60, return_all=False):
     cap = cv2.VideoCapture(video_path)
     tiempos = []
     for _ in range(n_frames):
@@ -57,7 +57,10 @@ def medir_tiempo(video_path, funcion, n_frames=60):
         _ = funcion(frame)
         tiempos.append(time.time() - inicio)
     cap.release()
+    if return_all:
+        return tiempos
     return np.mean(tiempos)
+
 
 def mostrar_video_detectado(video_path, funcion):
     cap = cv2.VideoCapture(video_path)
