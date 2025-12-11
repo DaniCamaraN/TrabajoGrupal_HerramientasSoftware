@@ -23,26 +23,34 @@ def region_interes(img):
 
 def region_interes2(img, margen_horizontal=0.05, margen_inferior=0.05):
     alto, ancho = img.shape[:2]
+
     x_min = int(ancho * margen_horizontal)
     x_max = int(ancho * (1 - margen_horizontal))
     y_min = alto // 2
     y_max = int(alto * (1 - margen_inferior))
+
     mask = np.zeros_like(img)
     mask[y_min:y_max, x_min:x_max] = 255
+
     return cv2.bitwise_and(img, mask)
 
 def filtrar_lineas(lines):
     filtradas = []
     if lines is None:
         return filtradas
+
     for line in lines:
-        x1,y1,x2,y2 = line[0]
+        x1, y1, x2, y2 = line[0]
+
         if x2 == x1:
             continue
-        pendiente = (y2-y1)/(x2-x1)
+
+        pendiente = (y2 - y1) / (x2 - x1)
         angulo = np.degrees(np.arctan(pendiente))
+
         if 20 < abs(angulo) < 70:
-            filtradas.append([x1,y1,x2,y2])
+            filtradas.append([x1, y1, x2, y2])
+
     return filtradas
 
 def medir_tiempo(video_path, funcion, n_frames=60, return_all=False):

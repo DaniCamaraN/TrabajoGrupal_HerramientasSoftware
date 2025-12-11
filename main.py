@@ -10,6 +10,7 @@ import metodo2
 import metodo3
 import metodo4
 import metodo5
+import metodo6
 
 #DataSet:  https://www.kaggle.com/datasets/sergiolvarezsilva/lane-detection-dataset-morelos-sergio
 
@@ -20,6 +21,7 @@ METODOS = {
     "clustering":    (metodo3.procesado_cpu, metodo3.procesado_gpu),
     "suavizado":     (metodo4.procesado_cpu, metodo4.procesado_gpu),
     "mixto":         (metodo5.procesado_cpu, metodo5.procesado_gpu),
+    "lineas_noche": (metodo6.procesado_cpu, metodo6.procesado_gpu)
 }
 
 def graficar_simple(fps_cpu,fps_gpu,metodo):
@@ -110,7 +112,7 @@ def procesamiento_complejo(video_path, func_cpu, func_gpu, metodo):
 
 
 def main():
-    video_path = "./video_3.mp4"
+    video_path = "./video_2.mp4"
 
     print("Métodos disponibles:")
     for k in METODOS:
