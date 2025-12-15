@@ -31,7 +31,7 @@ def procesado_cpu(frame):
         reverse=True
     )[:10]
 
-    # 6. Dibujar resultado
+    # 6. Output
     output = frame.copy()
     for x1, y1, x2, y2 in filtradas:
         cv2.line(output, (x1, y1), (x2, y2), (0, 255, 0), 3)
