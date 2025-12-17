@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
+import argparse
 
 from common import medir_tiempo, mostrar_video_detectado_doble
 
@@ -50,7 +51,7 @@ def procesamiento_simple(video_path, func_cpu, func_gpu, metodo):
 
 def procesamiento_complejo(video_path, func_cpu, func_gpu, metodo):
     # -----------------------------
-    # 1️⃣ Medir tiempos y FPS por frame
+    # Medir tiempos y FPS por frame
     # -----------------------------
     tiempos_cpu = medir_tiempo(video_path, func_cpu, n_frames=60, return_all=True)
     tiempos_gpu = medir_tiempo(video_path, func_gpu, n_frames=60, return_all=True)
@@ -62,7 +63,7 @@ def procesamiento_complejo(video_path, func_cpu, func_gpu, metodo):
     print(f"GPU: {np.mean(tiempos_gpu):.4f}s/frame (~{fps_gpu:.1f} FPS)")
 
     # -----------------------------
-    # 2️⃣ Barplot FPS promedio
+    # Barplot FPS promedio
     # -----------------------------
     df_avg = pd.DataFrame({
         "Modo": ["CPU", "GPU"],
@@ -73,18 +74,7 @@ def procesamiento_complejo(video_path, func_cpu, func_gpu, metodo):
     plt.show()
 
     # -----------------------------
-    # 3️⃣ Violinplot distribución por frame
-    # -----------------------------
-    df_violin = pd.DataFrame({
-        "Tiempo (s)": tiempos_cpu + tiempos_gpu,
-        "Modo": ["CPU"] * len(tiempos_cpu) + ["GPU"] * len(tiempos_gpu)
-    })
-    sns.violinplot(x="Modo", y="Tiempo (s)", data=df_violin, hue= "Modo", palette="viridis", legend=False)
-    plt.title(f"Distribución del tiempo/frame - Método '{metodo}'")
-    plt.show()
-
-    # -----------------------------
-    # 4️⃣ Lineplot evolución temporal
+    # Lineplot evolución temporal
     # -----------------------------
     frames = list(range(len(tiempos_cpu)))
     sns.lineplot(x=frames, y=tiempos_cpu, label="CPU")
@@ -96,7 +86,7 @@ def procesamiento_complejo(video_path, func_cpu, func_gpu, metodo):
     plt.show()
 
     # -----------------------------
-    # 5️⃣ Heatmap FPS por metodo y modo
+    # Heatmap FPS por metodo y modo
     # -----------------------------
     fps_matrix = []
     for f_cpu, f_gpu in METODOS.values():
@@ -110,7 +100,17 @@ def procesamiento_complejo(video_path, func_cpu, func_gpu, metodo):
 
 
 def main():
-    video_path = "./video_0.mp4"
+    parser = argparse.ArgumentParser(description="Comparación CPU-GPU en detección de líneas de tráfico.")
+    parser.add_argument("--video_path", help="Ruta al video", default=r"./video_0.mp4")
+    parser.add_argument("--procesamiento_simple",
+                        help="Si se quiere un procesamiento simple de solo una grafica comparando CPU y GPU",
+                        default=True, type=bool)
+    parser.add_argument("--procesamiento_complejo",
+                        help="Si se quiere un procesamiento más complejo con una gráfica de comparativa CPU y GPU de todos los metodos",
+                        default=False, type=bool)
+    args = parser.parse_args()
+
+    video_path = args.video_path
 
     print("Métodos disponibles:")
     for k in METODOS:
@@ -125,8 +125,13 @@ def main():
 
     print("\nMidiendo rendimiento...")
 
-    procesamiento_simple(video_path, func_cpu, func_gpu, metodo)
-    #procesamiento_complejo(video_path, func_cpu, func_gpu, metodo)
+    if args.procesamiento_simple:
+        print("Procesamiento simple...")
+        procesamiento_simple(video_path, func_cpu, func_gpu, metodo)
+
+    if args.procesamiento_complejo:
+        print("Procesamiento complejo...")
+        procesamiento_complejo(video_path, func_cpu, func_gpu, metodo)
 
     print("\nReproduciendo video CPU/GPU...")
     mostrar_video_detectado_doble(video_path, func_cpu, func_gpu)
